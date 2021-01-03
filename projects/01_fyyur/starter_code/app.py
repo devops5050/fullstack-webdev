@@ -55,22 +55,22 @@ def index():
 
 @app.route('/venues')
 def venues():
-  all_areas = Venue.query.with_entities(func.count(Venue.id), Venue.city, Venue.state).group_by(Venue.city, Venue.state).all()
+  
+  venue_lists = Venue.query.with_entities(func.count(Venue.id), Venue.city, Venue.state).group_by(Venue.city, Venue.state).all()
   data = []
 
-  for area in all_areas:
-    area_venues = Venue.query.filter_by(state=area.state).filter_by(city=area.city).all()
-    venue_data = []
-    for venue in area_venues:
-      venue_data.append({
+  for venue_item in venue_lists:
+    venueslist = Venue.query.filter_by(state=venue_item.state).filter_by(city=venue_item.city).all()
+    venuedata = []
+    for venue in venueslist:
+      venuedata.append({
         "id": venue.id,
-        "name": venue.name, 
-        "num_upcoming_shows": len(db.session.query(Show).filter(Show.venue_id==1).filter(Show.start_time>datetime.now()).all())
+        "name": venue.name
       })
     data.append({
-      "city": area.city,
-      "state": area.state, 
-      "venues": venue_data
+      "city": venue_item.city,
+      "state": venue_item.state, 
+      "venues": venuedata
     })
 
   return render_template('pages/venues.html', areas=data);
@@ -115,56 +115,57 @@ def search_venues():
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
   
-  venue = Venue.query.get(venue_id)
+  venue_item = Venue.query.get(venue_id)
 
-  if not venue: 
+  if not venue_item: 
     return render_template('errors/404.html')
 
-  upcoming_shows_query = db.session.query(Show).join(Artist).filter(Show.venue_id==venue_id).filter(Show.start_time>datetime.now()).all()
-  upcoming_shows = []
+  future_shows_lists = db.session.query(Show).join(Artist).filter(Show.venue_id==venue_id).filter(Show.start_time>datetime.now()).all()
+  upcoming_shows_lists = []
 
-  past_shows_query = db.session.query(Show).join(Artist).filter(Show.venue_id==venue_id).filter(Show.start_time<datetime.now()).all()
-  past_shows = []
+  past_shows_lists = db.session.query(Show).join(Artist).filter(Show.venue_id==venue_id).filter(Show.start_time<datetime.now()).all()
+  past_shows_data = []
 
-  for show in past_shows_query:
-    past_shows.append({
-      "artist_id": show.artist_id,
-      "artist_name": show.artist.name,
-      "artist_image_link": show.artist.image_link,
-      "start_time": show.start_time.strftime('%Y-%m-%d %H:%M:%S')
+  for show_item in past_shows_lists:
+    past_shows_data.append({
+      "artist_id": show_item.artist_id,
+      "artist_name": show_item.artist.name,
+      "artist_image_link": show_item.artist.image_link,
+      "start_time": show_item.start_time.strftime('%Y-%m-%d %H:%M:%S')
     })
 
-  for show in upcoming_shows_query:
-    upcoming_shows.append({
-      "artist_id": show.artist_id,
-      "artist_name": show.artist.name,
-      "artist_image_link": show.artist.image_link,
-      "start_time": show.start_time.strftime("%Y-%m-%d %H:%M:%S")    
+  for show_item in future_shows_lists:
+    upcoming_shows_lists.append({
+      "artist_id": show_item.artist_id,
+      "artist_name": show_item.artist.name,
+      "artist_image_link": show_item.artist.image_link,
+      "start_time": show_item.start_time.strftime("%Y-%m-%d %H:%M:%S")    
     })
 
   data = {
-    "id": venue.id,
-    "name": venue.name,
-    "genres": venue.genres,
-    "address": venue.address,
-    "city": venue.city,
-    "state": venue.state,
-    "phone": venue.phone,
-    "website": venue.website,
-    "facebook_link": venue.facebook_link,
-    "seeking_talent": venue.seeking_talent,
-    "seeking_description": venue.seeking_description,
-    "image_link": venue.image_link,
-    "past_shows": past_shows,
-    "upcoming_shows": upcoming_shows,
-    "past_shows_count": len(past_shows),
-    "upcoming_shows_count": len(upcoming_shows),
+    "id": venue_item.id,
+    "name": venue_item.name,
+    "genres": venue_item.genres,
+    "address": venue_item.address,
+    "city": venue_item.city,
+    "state": venue_item.state,
+    "phone": venue_item.phone,
+    "website": venue_item.website,
+    "facebook_link": venue_item.facebook_link,
+    "seeking_talent": venue_item.seeking_talent,
+    "seeking_description": venue_item.seeking_description,
+    "image_link": venue_item.image_link,
+    "upcoming_shows": upcoming_shows_lists,
+    "upcoming_shows_count": len(upcoming_shows_lists),
+    "past_shows": past_shows_data,
+    "past_shows_count": len(past_shows_data),
   }
 
   return render_template('pages/show_venue.html', venue=data)
+
+
 #  Create Venue
 #  ----------------------------------------------------------------
-
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
   form = VenueForm()
